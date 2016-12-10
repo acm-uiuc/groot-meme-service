@@ -16,13 +16,13 @@ python manage.py runserver
 ### GET /memes/browse
 `curl -X GET http://localhost:8000/memes/browse'
 ```json
-[{'user':'Steve Jobs', 'url':'http://www.imgur.com/gallery/AAAAA', 'score':0}]
+[{"user":"Steve Jobs", "url":"http://www.imgur.com/gallery/AAAAA", "score":0}]
 ```
 
 ### GET /memes/query
 `curl -X GET -d '{"user" => "Steve Jobs"}' http://localhost:8000/memes/query`
 ```json
-{'user':'Steve Jobs', 'url':'http://www.imgur.com/gallery/AAAAA', 'score':0}
+{"user":"Steve Jobs", "url":"http://www.imgur.com/gallery/AAAAA", "score":0}
 ```
 
 ### POST /memes/upload
