@@ -1,9 +1,4 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-
-engine = create_engine('sqlite:///:memory:', echo=True)
-Base = declarative_base
-Base.metadata.create_all(engine)
+from flask_sqlalchemy import SQLAlchemy
 
 class User(db.Model):
     __tablename__ = "users"
@@ -15,7 +10,7 @@ class User(db.Model):
         self.email = email
 
 
-class Meme(models.Model):
+class Meme(db.Model):
     __tablename__ = "memes"
     url = db.Column(db.String(100), primary_key=True)
     user = db.Column(db.String(100))
