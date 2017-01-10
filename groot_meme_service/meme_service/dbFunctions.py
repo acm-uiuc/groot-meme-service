@@ -33,7 +33,7 @@ def getBrowseMemes(order='random'):
 	memes = []
 	for index in xrange(10):
 		current_meme = meme_list[index]
-		memes.append( {'user': current_meme.user, 'url': current_meme.url, 'score': current_meme.score} )
+		memes.append( {'user': current_meme.user, 'url': current_meme.url, 'score': current_meme.score, 'title': current_meme.title} )
 	return memes
 
 
@@ -51,7 +51,7 @@ def getFilteredMemes(user=None, order='random'):
 	
 	memes = []
 	for index in xrange(10):
-		memes.append({'user': meme_list[index].user, 'url': meme_list[index].url, 'score': meme_list[index].score})
+		memes.append({'user': meme_list[index].user, 'url': meme_list[index].url, 'score': meme_list[index].score, 'title': meme_list[index].title})
 	return memes
 
 
