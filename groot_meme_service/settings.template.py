@@ -4,3 +4,5 @@ mysql = {
     'host': '',
     'dbname': ''
 }
+
+GROOT_ACCESS_TOKEN = ''

@@ -9,13 +9,13 @@ class Meme(db.Model):
     url = db.Column(db.String(120), unique=True)
     netid = db.Column(db.String(100))
     title = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
 
     def to_dict(self):
         return {
             'id': self.id,
             'url': self.url,
-            'created_at': self.uploaded_at.isoformat(),
+            'created_at': self.created_at.isoformat(),
             'title': self.title,
             'netid': self.netid
         }

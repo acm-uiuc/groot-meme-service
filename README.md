@@ -24,11 +24,11 @@
 4. Add your DB credentials to settings.py.
 
 ## Run Application
-From project root directory:
 ```
-export FLASK_APP=groot_meme_service.app
-flask run
+python groot_meme_service/app.py
 ```
+
+Do `export MEME_DEBUG=True` to run Flask in debug mode, if desired.
 
 ## Meme Routes
 
