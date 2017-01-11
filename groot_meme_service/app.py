@@ -51,7 +51,6 @@ def check_group_membership(netid, group):
 
 def approve_meme_admin(netid):
     meme_groups = ['top4', 'admin', 'corporate']
-    return True
     return any(check_group_membership(netid, g) for g in meme_groups)
 
 

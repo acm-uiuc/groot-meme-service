@@ -42,13 +42,38 @@ Returns first 25 memes in given order.
 - `order` - Optional. Options: 'random' - random order, 'latest' - freshest memes
     - Default: 'random'
 
-### GET /memes/:meme_id
-
-Returns given meme.
-
 ### POST /memes
 
 **Params**:
 
 - `url` - Required. Direct image url of the meme. Must have `png` or `jpg` extension.
+- `token` - Required. Session token to authenticate poster.
 - `title` - Optional. Title of your meme.
+
+### GET /memes/:meme_id
+
+Returns given meme.
+
+### DELETE /memes/:meme_id
+
+Requires admin access. Deletes a meme.
+
+**Params**:
+- `token` - Required. Session token to authenticate user.
+
+
+### GET /memes/unapproved
+
+Requires admin access. Returns all unapproved memes.
+
+**Params**:
+- `token` - Required. Session token to authenticate user.
+
+### PUT /memes/:meme_id/approve
+
+Requires admin access. Approves a meme to be publicly viewable.
+
+**Params**:
+- `token` - Required. Session token to authenticate user.
+
+
