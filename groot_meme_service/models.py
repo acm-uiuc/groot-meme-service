@@ -1,5 +1,5 @@
-from dbFunctions import db
-############################################################ DATABASE MODELS ##############################################################
+from app import db
+
 
 class User(db.Model):
     __tablename__ = "users"
@@ -15,15 +15,12 @@ class Meme(db.Model):
     __tablename__ = "memes"
     url = db.Column(db.String(120), primary_key=True)
     user = db.Column(db.String(100))
-    upvotes = db.Column(db.Integer)
     title = db.Column(db.String(100))
-    time = db.Column(db.Integer)
+    time = db.Column(db.DateTime)
 
-    def __init__(self,url,user,title,time):
+    def __init__(self, url, user, title, time):
         self.url = url
         self.user = user
         self.upvotes = 0
         self.title = title
         self.time = time
-
-###########################################################################################
