@@ -1,34 +1,54 @@
 # groot-meme-service
 
-## Install Flask for Python 2.7
-```
-pip install flask
-```
+## Install / Setup
+1. Clone repo:
+
+    ```
+    git clone https://github.com/acm-uiuc/groot-meme-service
+    cd groot-meme-service
+    ```
+
+2. Install dependencies:
+
+    ```
+    pip install -r requirements.txt
+    ```
+
+3. Copy settings template:
+
+    ```
+    cd groot_meme_service
+    cp settings.template.py settings.py
+    ```
+
+4. Add your DB credentials to settings.py.
 
 ## Run Application
-From folder groot-meme-service/groot_meme_service
+From project root directory:
 ```
-export FLASK_APP=app.py
+export FLASK_APP=groot_meme_service.app
 flask run
 ```
 
-## API Documentation
-arg "order" in browse and query can be omitted or any of "random", "latest", "top", "rising"
+## Meme Routes
 
-### GET /memes/browse
-`curl -X GET -d '{"order" => "random"}' http://localhost:8000/memes/browse'
-```json
-[{"user":"Steve Jobs", "url":"http://www.imgur.com/gallery/AAAAA", "score":0, "title":"Oranges"}]
-```
+### GET /memes
 
-### GET /memes/query
-`curl -X GET -d '{"user" => "Steve Jobs", "order" => "random"}' http://localhost:8000/memes/query`
-```json
-{"user":"Steve Jobs", "url":"http://www.imgur.com/gallery/AAAAA", "score":0, "title":"Oranges"}
-```
+Returns first 25 memes in given order.
 
-### POST /memes/upload
-`curl -X POST -d '{"user" => "Steve Jobs", "url" => "http://www.imgur.com/gallery/AAAAA"}' http://localhost:8000/memes/upload`
-```json
-OK
-```
+**Params**:
+
+- `netid` - Optional. Filter by user who submitted meme.
+- `order` - Optional. Options: 'random' - random order, 'latest' - freshest memes
+    - Default: 'random'
+
+### GET /memes/:meme_id
+
+Returns given meme.
+
+### POST /memes
+
+**Params**:
+
+- `url` - Required. Direct image url of the meme. Must have `png` or `jpg` extension.
+- `title` - Optional. Title of your meme.

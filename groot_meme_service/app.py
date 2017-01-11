@@ -20,7 +20,7 @@ class MemeListResource(Resource):
         ''' Endpoint for viewing dank memes '''
         order_funcs = {
             'random': func.random(),
-            'latest': Meme.uploaded_at
+            'latest': Meme.created_at
         }
         parser = reqparse.RequestParser()
         parser.add_argument('order', choices=order_funcs.keys(),
