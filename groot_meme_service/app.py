@@ -49,7 +49,19 @@ def check_group_membership(netid, group):
 
 def approve_meme_admin(netid):
     meme_groups = ['top4', 'admin', 'corporate']
+    return True
     return any(check_group_membership(netid, g) for g in meme_groups)
+
+
+def requires_admin(func):
+    def decorated(*args, **kwargs):
+        parser = reqparse.RequestParser()
+        parser.add_argument('token', location='args', required=True,
+                            dest='netid', type=authenticate_netid)
+        if not approve_meme_admin(parser.parse_args().netid):
+            return "Nice try memelord, but I can't let you do that.", 403
+        return func(*args, **kwargs)
+    return decorated
 
 
 class MemeListResource(Resource):
@@ -70,7 +82,7 @@ class MemeListResource(Resource):
         if args.netid:
             memes = memes.filter_by(netid=args.netid)
 
-        memes = memes.limit(25)
+        memes = memes.filter(Meme.approved != 0).limit(25)
 
         return jsonify([m.to_dict() for m in memes])
 
@@ -84,16 +96,14 @@ class MemeListResource(Resource):
                             dest='netid', type=authenticate_netid)
         args = parser.parse_args()
 
-        # TODO: Meme Approval
-        netid = authenticate_netid(args.token)
-
         if db.session.query(Meme).filter_by(url=args.url).first():
-            return "This meme has already been submitted!", 400
+            return ("This meme has already been submitted! "
+                    "Lay off the stale memes."), 400
 
         meme = Meme(
             url=args.url,
             title=args.title,
-            netid=netid
+            netid=args.netid
         )
         db.session.add(meme)
         db.session.commit()
@@ -110,25 +120,41 @@ class MemeResource(Resource):
         else:
             return "No meme with id %s" % meme_id, 404
 
+    @requires_admin
     def delete(self, meme_id):
         ''' Endpoint for deleting a meme :'( '''
-        parser = reqparse.RequestParser()
-        parser.add_argument('token', location='args', required=True,
-                            dest='netid', type=authenticate_netid)
-        args = parser.parse_args()
-        if not approve_meme_admin(args.netid):
-            return "Nice try memelord, but I can't let you do that.", 403
         meme = db.session.query(Meme).filter_by(id=meme_id).first()
         if meme:
             db.session.delete(meme)
             db.session.commit()
-            return "Deleted meme %s" % meme_id
+            return "Deleted meme %s. ;_;7" % meme_id
         else:
             return "No meme with id %s" % meme_id, 404
 
 
+class MemeApprovalResource(Resource):
+    @requires_admin
+    def put(self, meme_id):
+        meme = db.session.query(Meme).filter_by(id=meme_id).first()
+        if not meme:
+            return "No meme with id %s" % meme_id, 404
+        meme.approved = True
+        db.session.add(meme)
+        db.session.commit()
+        return "Approved meme %s" % meme_id
+
+
+class MemeUnapprovedResource(Resource):
+    @requires_admin
+    def get(self):
+        memes = db.session.query(Meme).filter_by(approved=0).all()
+        return jsonify([m.to_dict() for m in memes])
+
+
 api.add_resource(MemeResource, '/memes/<int:meme_id>', endpoint='meme')
 api.add_resource(MemeListResource, '/memes', endpoint='memes')
+api.add_resource(MemeApprovalResource, '/memes/<int:meme_id>/approve')
+api.add_resource(MemeUnapprovedResource, '/memes/unapproved')
 db.init_app(app)
 db.create_all(app=app)
 

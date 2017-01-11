@@ -9,6 +9,7 @@ class Meme(db.Model):
     url = db.Column(db.String(120), unique=True)
     netid = db.Column(db.String(100))
     title = db.Column(db.String(100))
+    approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
 
     def to_dict(self):
