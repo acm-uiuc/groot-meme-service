@@ -30,8 +30,26 @@ def authenticate_netid(token):
     }
     r = requests.get(url, headers=headers)
     if r.status_code != 200 or 'token' not in r.json():
-        abort(403)
+        raise ValueError("Who do you think you are? "
+                         "Unable to authenticate token.")
     return r.json().get('user')['name']
+
+
+def check_group_membership(netid, group):
+    url = '/'.join([SERVICES_URL, 'groups', 'committees', group])
+    headers = {
+        'Authorization': GROOT_ACCESS_TOKEN
+    }
+    params = {
+        'isMember': netid
+    }
+    r = requests.get(url, headers=headers, params=params)
+    return r.json()['isValid']
+
+
+def approve_meme_admin(netid):
+    meme_groups = ['top4', 'admin', 'corporate']
+    return any(check_group_membership(netid, g) for g in meme_groups)
 
 
 class MemeListResource(Resource):
@@ -62,9 +80,11 @@ class MemeListResource(Resource):
         parser.add_argument('url', required=True,
                             type=inputs.regex('https?:\/\/.*\.(?:png|jpg)'))
         parser.add_argument('title')
-        parser.add_argument('token', location='args', required=True)
+        parser.add_argument('token', location='args', required=True,
+                            dest='netid', type=authenticate_netid)
         args = parser.parse_args()
 
+        # TODO: Meme Approval
         netid = authenticate_netid(args.token)
 
         if db.session.query(Meme).filter_by(url=args.url).first():
@@ -92,6 +112,12 @@ class MemeResource(Resource):
 
     def delete(self, meme_id):
         ''' Endpoint for deleting a meme :'( '''
+        parser = reqparse.RequestParser()
+        parser.add_argument('token', location='args', required=True,
+                            dest='netid', type=authenticate_netid)
+        args = parser.parse_args()
+        if not approve_meme_admin(args.netid):
+            return "Nice try memelord, but I can't let you do that.", 403
         meme = db.session.query(Meme).filter_by(id=meme_id).first()
         if meme:
             db.session.delete(meme)
