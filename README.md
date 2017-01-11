@@ -1,34 +1,79 @@
 # groot-meme-service
 
-## Install Flask for Python 2.7
-```
-pip install flask
-```
+## Install / Setup
+1. Clone repo:
+
+    ```
+    git clone https://github.com/acm-uiuc/groot-meme-service
+    cd groot-meme-service
+    ```
+
+2. Install dependencies:
+
+    ```
+    pip install -r requirements.txt
+    ```
+
+3. Copy settings template:
+
+    ```
+    cd groot_meme_service
+    cp settings.template.py settings.py
+    ```
+
+4. Add your DB credentials to settings.py.
 
 ## Run Application
-From folder groot-meme-service/groot_meme_service
 ```
-export FLASK_APP=portfolioFlask.py
-flask run
+python groot_meme_service/app.py
 ```
 
-## API Documentation
-arg "order" in browse and query can be omitted or any of "random", "latest", "top", "rising"
+Do `export MEME_DEBUG=True` to run Flask in debug mode, if desired.
 
-### GET /memes/browse
-`curl -X GET -d '{"order" => "random"}' http://localhost:8000/memes/browse'
-```json
-[{"user":"Steve Jobs", "url":"http://www.imgur.com/gallery/AAAAA", "score":0, "title":"Oranges"}]
-```
+## Meme Routes
 
-### GET /memes/query
-`curl -X GET -d '{"user" => "Steve Jobs", "order" => "random"}' http://localhost:8000/memes/query`
-```json
-{"user":"Steve Jobs", "url":"http://www.imgur.com/gallery/AAAAA", "score":0, "title":"Oranges"}
-```
+### GET /memes
 
-### POST /memes/upload
-`curl -X POST -d '{"user" => "Steve Jobs", "url" => "http://www.imgur.com/gallery/AAAAA"}' http://localhost:8000/memes/upload`
-```json
-OK
-```
+Returns first 25 memes in given order.
+
+**Params**:
+
+- `netid` - Optional. Filter by user who submitted meme.
+- `order` - Optional. Options: 'random' - random order, 'latest' - freshest memes
+    - Default: 'random'
+
+### POST /memes
+
+**Params**:
+
+- `url` - Required. Direct image url of the meme. Must have `png` or `jpg` extension.
+- `token` - Required. Session token to authenticate poster.
+- `title` - Optional. Title of your meme.
+
+### GET /memes/:meme_id
+
+Returns given meme.
+
+### DELETE /memes/:meme_id
+
+Requires admin access. Deletes a meme.
+
+**Params**:
+- `token` - Required. Session token to authenticate user.
+
+
+### GET /memes/unapproved
+
+Requires admin access. Returns all unapproved memes.
+
+**Params**:
+- `token` - Required. Session token to authenticate user.
+
+### PUT /memes/:meme_id/approve
+
+Requires admin access. Approves a meme to be publicly viewable.
+
+**Params**:
+- `token` - Required. Session token to authenticate user.
+
+
