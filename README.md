@@ -8,7 +8,7 @@ pip install flask
 ## Run Application
 From folder groot-meme-service/groot_meme_service
 ```
-export FLASK_APP=portfolioFlask.py
+export FLASK_APP=app.py
 flask run
 ```
 
