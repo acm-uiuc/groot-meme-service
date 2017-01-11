@@ -1,26 +1,21 @@
-from app import db
-
-
-class User(db.Model):
-    __tablename__ = "users"
-    email = db.Column(db.String(100), primary_key=True)
-    name = db.Column(db.String(50))
-
-    def __init__(self, name, email):
-        self.email = email
-        self.name = name
+from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+db = SQLAlchemy()
 
 
 class Meme(db.Model):
     __tablename__ = "memes"
-    url = db.Column(db.String(120), primary_key=True)
-    user = db.Column(db.String(100))
+    id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.String(120), unique=True)
+    netid = db.Column(db.String(100))
     title = db.Column(db.String(100))
-    time = db.Column(db.DateTime)
+    uploaded_at = db.Column(db.DateTime, default=datetime.now)
 
-    def __init__(self, url, user, title, time):
-        self.url = url
-        self.user = user
-        self.upvotes = 0
-        self.title = title
-        self.time = time
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'url': self.url,
+            'uploaded_at': self.uploaded_at.isoformat(),
+            'title': self.title,
+            'netid': self.netid
+        }
