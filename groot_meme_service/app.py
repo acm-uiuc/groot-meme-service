@@ -1,10 +1,11 @@
-from flask import Flask, jsonify, abort
+from flask import Flask, jsonify
 import os
 import requests
 from models import db, Meme
 from settings import MYSQL, GROOT_ACCESS_TOKEN
 from flask_restful import Resource, Api, reqparse, inputs
 from sqlalchemy.sql.expression import func
+from utils import send_error
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -14,6 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://{}:{}@{}/{}'.format(
     MYSQL['host'],
     MYSQL['dbname']
 )
+app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=UTF-8'
 
 PORT = 42069
 DEBUG = os.environ.get('MEME_DEBUG', False)
@@ -59,7 +61,8 @@ def requires_admin(func):
         parser.add_argument('token', location='args', required=True,
                             dest='netid', type=authenticate_netid)
         if not approve_meme_admin(parser.parse_args().netid):
-            return "Nice try memelord, but I can't let you do that.", 403
+            return send_error("Nice try memelord, "
+                              "but I can't let you do that.", 403)
         return func(*args, **kwargs)
     return decorated
 
@@ -97,8 +100,8 @@ class MemeListResource(Resource):
         args = parser.parse_args()
 
         if db.session.query(Meme).filter_by(url=args.url).first():
-            return ("This meme has already been submitted! "
-                    "Lay off the stale memes."), 400
+            return send_error("This meme has already been submitted! "
+                              "Lay off the stale memes.", 400)
 
         meme = Meme(
             url=args.url,
@@ -118,7 +121,7 @@ class MemeResource(Resource):
         if meme:
             return jsonify(meme.to_dict())
         else:
-            return "No meme with id %s" % meme_id, 404
+            return send_error("No meme with id %s" % meme_id)
 
     @requires_admin
     def delete(self, meme_id):
@@ -129,7 +132,7 @@ class MemeResource(Resource):
             db.session.commit()
             return "Deleted meme %s. ;_;7" % meme_id
         else:
-            return "No meme with id %s" % meme_id, 404
+            return send_error("No meme with id %s" % meme_id)
 
 
 class MemeApprovalResource(Resource):
@@ -137,11 +140,11 @@ class MemeApprovalResource(Resource):
     def put(self, meme_id):
         meme = db.session.query(Meme).filter_by(id=meme_id).first()
         if not meme:
-            return "No meme with id %s" % meme_id, 404
+            return send_error("No meme with id %s" % meme_id)
         meme.approved = True
         db.session.add(meme)
         db.session.commit()
-        return "Approved meme %s" % meme_id
+        return jsonify("Approved meme %s" % meme_id)
 
 
 class MemeUnapprovedResource(Resource):
