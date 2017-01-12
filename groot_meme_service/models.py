@@ -11,6 +11,7 @@ class Meme(db.Model):
     title = db.Column(db.String(100))
     approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    votes = db.relationship('Vote', backref='meme', lazy='dynamic')
 
     def to_dict(self):
         return {
@@ -18,5 +19,13 @@ class Meme(db.Model):
             'url': self.url,
             'created_at': self.created_at.isoformat(),
             'title': self.title,
-            'netid': self.netid
+            'netid': self.netid,
+            'votes': len(self.votes.all())
         }
+
+
+class Vote(db.Model):
+    __tablename__ = "votes"
+    id = db.Column(db.Integer, primary_key=True)
+    netid = db.Column(db.String(100))
+    meme_id = db.Column(db.Integer, db.ForeignKey('memes.id'))

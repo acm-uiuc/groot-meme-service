@@ -1,11 +1,11 @@
 from flask import Flask, jsonify
 import os
 import requests
-from models import db, Meme
+from models import db, Meme, Vote
 from settings import MYSQL, GROOT_ACCESS_TOKEN
 from flask_restful import Resource, Api, reqparse, inputs
 from sqlalchemy.sql.expression import func
-from utils import send_error
+from utils import send_error, send_success
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -143,7 +143,7 @@ class MemeApprovalResource(Resource):
         meme.approved = True
         db.session.add(meme)
         db.session.commit()
-        return jsonify("Approved meme %s" % meme_id)
+        return send_success("Approved meme %s" % meme_id)
 
 
 class MemeUnapprovedResource(Resource):
@@ -153,10 +153,47 @@ class MemeUnapprovedResource(Resource):
         return jsonify([m.to_dict() for m in memes])
 
 
+class MemeVotingResource(Resource):
+    def delete(self, meme_id):
+        ''' Remove your vote for the requested meme '''
+        parser = reqparse.RequestParser()
+        parser.add_argument('token', location='args', required=True,
+                            dest='netid', type=authenticate_netid)
+        netid = parser.parse_args().netid
+
+        vote = db.session.query(Vote).filter_by(
+            netid=netid, meme_id=meme_id).first()
+        if vote:
+            db.session.delete(vote)
+            db.session.commit()
+            return send_success("Deleted vote for %s" % meme_id)
+        else:
+            return send_error("You haven't voted for meme %s" % meme_id)
+
+    def put(self, meme_id):
+        ''' Cast your vote for the requested meme '''
+        parser = reqparse.RequestParser()
+        parser.add_argument('token', location='args', required=True,
+                            dest='netid', type=authenticate_netid)
+        netid = parser.parse_args().netid
+
+        if not db.session.query(Meme).filter_by(id=meme_id).first():
+            return send_error("No meme with id %s" % meme_id)
+            
+        vote = db.session.query(Vote).filter_by(
+            netid=netid, meme_id=meme_id).first()
+        if not vote:
+            vote = Vote(netid=netid, meme_id=meme_id)
+        db.session.add(vote)
+        db.session.commit()
+        return send_success("Cast vote for %s" % meme_id)
+
+
 api.add_resource(MemeResource, '/memes/<int:meme_id>', endpoint='meme')
 api.add_resource(MemeListResource, '/memes', endpoint='memes')
 api.add_resource(MemeApprovalResource, '/memes/<int:meme_id>/approve')
 api.add_resource(MemeUnapprovedResource, '/memes/unapproved')
+api.add_resource(MemeVotingResource, '/memes/vote/<int:meme_id>')
 db.init_app(app)
 db.create_all(app=app)
 
