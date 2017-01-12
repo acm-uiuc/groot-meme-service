@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Copyright © 2016, ACM@UIUC
 This file is part of the Groot Project.
