@@ -20,7 +20,7 @@ class Meme(db.Model):
             'created_at': self.created_at.isoformat(),
             'title': self.title,
             'netid': self.netid,
-            'votes': len(self.votes.all())
+            'votes': self.votes.count()
         }
 
 

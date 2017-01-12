@@ -179,7 +179,7 @@ class MemeVotingResource(Resource):
 
         if not db.session.query(Meme).filter_by(id=meme_id).first():
             return send_error("No meme with id %s" % meme_id)
-            
+
         vote = db.session.query(Vote).filter_by(
             netid=netid, meme_id=meme_id).first()
         if not vote:
