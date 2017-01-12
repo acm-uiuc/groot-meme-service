@@ -38,9 +38,11 @@ Returns first 25 memes in given order.
 
 **Params**:
 
-- `netid` - Optional. Filter by user who submitted meme.
+- `author` - Optional. Filter by user who submitted meme.
 - `order` - Optional. Options: 'random' - random order, 'latest' - freshest memes
     - Default: 'random'
+- `token` - Optional. Session token of user. Will add 'upvoted' key to response, indicating if the user has up voted each meme
+
 
 ### POST /memes
 
@@ -53,6 +55,10 @@ Returns first 25 memes in given order.
 ### GET /memes/:meme_id
 
 Returns given meme.
+
+**Params**:
+
+- `token` - Optional. Session token of user. Will add 'upvoted' key to response, indicating if the user has up voted the meme
 
 ### DELETE /memes/:meme_id
 
