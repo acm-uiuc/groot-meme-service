@@ -79,16 +79,19 @@ class MemeListResource(Resource):
         parser.add_argument('author', location='args')
         parser.add_argument('token', location='args', required=False,
                             dest='netid', type=authenticate_netid)
+        parser.add_argument('page', location='args', default=1,
+                            type=int)
         args = parser.parse_args()
 
-        memes = db.session.query(Meme).order_by(order_funcs[args.order])
+        memes = Meme.query.order_by(order_funcs[args.order])
 
         if args.author:
             memes = memes.filter_by(netid=args.netid)
 
-        memes = memes.filter(Meme.approved != 0).limit(25)
+        page = memes.filter(Meme.approved != 0).paginate(
+            page=args.page, per_page=25)
 
-        memes_dict = [m.to_dict() for m in memes]
+        memes_dict = [m.to_dict() for m in page.items]
 
         # Check to see if token user has voted on each meme
         if args.netid:
@@ -98,7 +101,11 @@ class MemeListResource(Resource):
                     meme_id=meme['id']
                     ).first() is not None
 
-        return jsonify(memes_dict)
+        return jsonify({
+            'memes': memes_dict,
+            'page': args.page,
+            'num_pages': page.pages 
+        })
 
     def post(self):
         ''' Endpoint for registering a meme '''
