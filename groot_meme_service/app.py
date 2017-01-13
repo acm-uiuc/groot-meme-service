@@ -105,7 +105,7 @@ class MemeListResource(Resource):
         # Check to see if token user has voted on each meme
         if args.netid:
             for meme in memes_dict:
-                meme['upvoted'] = db.session.query(Vote).filter_by(
+                meme['upvoted'] = Vote.query.filter_by(
                     netid=args.netid,
                     meme_id=meme['id']
                     ).first() is not None
@@ -128,7 +128,7 @@ class MemeListResource(Resource):
                             dest='netid', type=authenticate_netid)
         args = parser.parse_args()
 
-        if db.session.query(Meme).filter_by(url=args.url).first():
+        if Meme.query.filter_by(url=args.url).first():
             return send_error("This meme has already been submitted! "
                               "Lay off the stale memes.", 400)
 
@@ -149,11 +149,11 @@ class MemeResource(Resource):
         parser.add_argument('token', location='args', required=False,
                             dest='netid', type=authenticate_netid)
         args = parser.parse_args()
-        meme = db.session.query(Meme).filter_by(id=meme_id).first()
+        meme = Meme.query.filter_by(id=meme_id).first()
         if meme:
             meme_dict = meme.to_dict()
             if args.netid:
-                meme_dict['upvoted'] = db.session.query(Vote).filter_by(
+                meme_dict['upvoted'] = Vote.query.filter_by(
                     netid=args.netid,
                     meme_id=meme_id
                     ).first() is not None
@@ -164,7 +164,7 @@ class MemeResource(Resource):
     @requires_admin
     def delete(self, meme_id):
         ''' Endpoint for deleting a meme :'( '''
-        meme = db.session.query(Meme).filter_by(id=meme_id).first()
+        meme = Meme.query.filter_by(id=meme_id).first()
         if meme:
             db.session.delete(meme)
             db.session.commit()
@@ -176,7 +176,7 @@ class MemeResource(Resource):
 class MemeApprovalResource(Resource):
     @requires_admin
     def put(self, meme_id):
-        meme = db.session.query(Meme).filter_by(id=meme_id).first()
+        meme = Meme.query.filter_by(id=meme_id).first()
         if not meme:
             return send_error("No meme with id %s" % meme_id)
         meme.approved = True
@@ -212,7 +212,7 @@ class MemeVotingResource(Resource):
                             dest='netid', type=authenticate_netid)
         netid = parser.parse_args().netid
 
-        vote = db.session.query(Vote).filter_by(
+        vote = Vote.query.filter_by(
             netid=netid, meme_id=meme_id).first()
         if vote:
             db.session.delete(vote)
@@ -228,10 +228,10 @@ class MemeVotingResource(Resource):
                             dest='netid', type=authenticate_netid)
         netid = parser.parse_args().netid
 
-        if not db.session.query(Meme).filter_by(id=meme_id).first():
+        if not Meme.query.filter_by(id=meme_id).first():
             return send_error("No meme with id %s" % meme_id)
 
-        vote = db.session.query(Vote).filter_by(
+        vote = Vote.query.filter_by(
             netid=netid, meme_id=meme_id).first()
         if not vote:
             vote = Vote(netid=netid, meme_id=meme_id)
