@@ -98,7 +98,7 @@ class MemeListResource(Resource):
             memes = memes.filter_by(netid=args.netid)
 
         page = memes.filter(Meme.approved != 0).paginate(
-            page=args.page, per_page=25)
+            page=args.page, per_page=24)
 
         memes_dict = [m.to_dict() for m in page.items]
 
@@ -188,8 +188,20 @@ class MemeApprovalResource(Resource):
 class MemeUnapprovedResource(Resource):
     @requires_admin
     def get(self):
-        memes = db.session.query(Meme).filter_by(approved=0).all()
-        return jsonify(dict(memes=[m.to_dict() for m in memes]))
+        parser = reqparse.RequestParser()
+        parser.add_argument('page', location='args', default=1,
+                            type=int)
+        args = parser.parse_args()
+        page = Meme.query.filter_by(approved=0).paginate(
+            page=args.page, per_page=24)
+
+        return jsonify({
+            'memes': [m.to_dict() for m in page.items],
+            'page': args.page,
+            'num_pages': page.pages,
+            'next_page': page.next_num if page.has_next else None,
+            'prev_page': page.prev_num if page.has_prev else None
+        })
 
 
 class MemeVotingResource(Resource):
