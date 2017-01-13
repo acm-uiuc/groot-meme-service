@@ -8,6 +8,7 @@ this license in a file with the distribution.
 '''
 
 from flask import Flask, jsonify
+import flask
 import os
 import requests
 from models import db, Meme, Vote
@@ -65,14 +66,20 @@ def approve_meme_admin(netid):
 
 def requires_admin(func):
     def decorated(*args, **kwargs):
-        parser = reqparse.RequestParser()
-        parser.add_argument('token', location='args', required=True,
-                            dest='netid', type=authenticate_netid)
-        if not approve_meme_admin(parser.parse_args().netid):
+        if not approve_meme_admin(flask.g.netid):
             return send_error("Nice try memelord, "
                               "but I can't let you do that.", 403)
         return func(*args, **kwargs)
     return decorated
+
+
+@app.before_request
+def authenticate_token():
+    parser = reqparse.RequestParser()
+    parser.add_argument('token', location='args', required=True,
+                        dest='netid', type=authenticate_netid)
+    args = parser.parse_args()
+    flask.g.netid = args.netid
 
 
 class MemeListResource(Resource):
@@ -86,8 +93,6 @@ class MemeListResource(Resource):
         parser.add_argument('order', choices=order_funcs.keys(),
                             default='latest', location='args')
         parser.add_argument('author', location='args')
-        parser.add_argument('token', location='args', required=False,
-                            dest='netid', type=authenticate_netid)
         parser.add_argument('page', location='args', default=1,
                             type=int)
         args = parser.parse_args()
@@ -95,7 +100,7 @@ class MemeListResource(Resource):
         memes = Meme.query.order_by(order_funcs[args.order])
 
         if args.author:
-            memes = memes.filter_by(netid=args.netid)
+            memes = memes.filter_by(netid=args.author)
 
         page = memes.filter(Meme.approved != 0).paginate(
             page=args.page, per_page=24)
@@ -103,12 +108,11 @@ class MemeListResource(Resource):
         memes_dict = [m.to_dict() for m in page.items]
 
         # Check to see if token user has voted on each meme
-        if args.netid:
-            for meme in memes_dict:
-                meme['upvoted'] = Vote.query.filter_by(
-                    netid=args.netid,
-                    meme_id=meme['id']
-                    ).first() is not None
+        for meme in memes_dict:
+            meme['upvoted'] = Vote.query.filter_by(
+                netid=flask.g.netid,
+                meme_id=meme['id']
+                ).first() is not None
 
         return jsonify({
             'memes': memes_dict,
@@ -124,8 +128,6 @@ class MemeListResource(Resource):
         parser.add_argument('url', required=True,
                             type=inputs.regex('https?:\/\/.*\.(?:png|jpg)'))
         parser.add_argument('title')
-        parser.add_argument('token', location='args', required=True,
-                            dest='netid', type=authenticate_netid)
         args = parser.parse_args()
 
         if Meme.query.filter_by(url=args.url).first():
@@ -135,7 +137,7 @@ class MemeListResource(Resource):
         meme = Meme(
             url=args.url,
             title=args.title,
-            netid=args.netid
+            netid=flask.g.netid
         )
         db.session.add(meme)
         db.session.commit()
@@ -152,11 +154,10 @@ class MemeResource(Resource):
         meme = Meme.query.filter_by(id=meme_id).first()
         if meme:
             meme_dict = meme.to_dict()
-            if args.netid:
-                meme_dict['upvoted'] = Vote.query.filter_by(
-                    netid=args.netid,
-                    meme_id=meme_id
-                    ).first() is not None
+            meme_dict['upvoted'] = Vote.query.filter_by(
+                netid=flask.g.netid,
+                meme_id=meme_id
+                ).first() is not None
             return jsonify(meme_dict)
         else:
             return send_error("No meme with id %s" % meme_id)
