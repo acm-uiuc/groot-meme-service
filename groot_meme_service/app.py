@@ -15,7 +15,9 @@ from models import db, Meme, Vote
 from settings import MYSQL, GROOT_ACCESS_TOKEN
 from flask_restful import Resource, Api, reqparse, inputs
 from sqlalchemy.sql.expression import func
-from utils import send_error, send_success
+from utils import send_error, send_success, unknown_meme_response
+import logging
+logger = logging.getLogger('groot_meme_service')
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -42,9 +44,12 @@ def authenticate_netid(token):
     }
     r = requests.get(url, headers=headers)
     if r.status_code != 200 or 'token' not in r.json():
+        logger.info("Denying authentication for token %s" % token)
         raise ValueError("Who do you think you are? "
                          "Unable to authenticate token.")
-    return r.json().get('user')['name']
+    netid = r.json().get('user')['name']
+    logger.info("Authenticated user %s" % netid)
+    return netid
 
 
 def check_group_membership(netid, group):
@@ -67,8 +72,10 @@ def approve_meme_admin(netid):
 def requires_admin(func):
     def decorated(*args, **kwargs):
         if not approve_meme_admin(flask.g.netid):
+            logger.info("Rejecting admin request from %s" % flask.g.netid)
             return send_error("Nice try memelord, "
                               "but I can't let you do that.", 403)
+        logger.info("Authenticated admin request from %s" % flask.g.netid)
         return func(*args, **kwargs)
     return decorated
 
@@ -114,6 +121,9 @@ class MemeListResource(Resource):
                 meme_id=meme['id']
                 ).first() is not None
 
+        logger.info("Serving memes to %s from page %s" %
+                    (flask.g.netid, args.page))
+
         return jsonify({
             'memes': memes_dict,
             'page': args.page,
@@ -141,16 +151,14 @@ class MemeListResource(Resource):
         )
         db.session.add(meme)
         db.session.commit()
+        logger.info("%s created new meme with id %s" %
+                    (flask.g.netid, meme.id))
         return jsonify(meme.to_dict())
 
 
 class MemeResource(Resource):
     def get(self, meme_id):
         ''' Endpoint for accessing a single meme '''
-        parser = reqparse.RequestParser()
-        parser.add_argument('token', location='args', required=False,
-                            dest='netid', type=authenticate_netid)
-        args = parser.parse_args()
         meme = Meme.query.filter_by(id=meme_id).first()
         if meme:
             meme_dict = meme.to_dict()
@@ -158,9 +166,10 @@ class MemeResource(Resource):
                 netid=flask.g.netid,
                 meme_id=meme_id
                 ).first() is not None
+            logger.info("Serving %s meme %s" % (flask.g.netid, meme_id))
             return jsonify(meme_dict)
         else:
-            return send_error("No meme with id %s" % meme_id)
+            return unknown_meme_response(meme_id)
 
     @requires_admin
     def delete(self, meme_id):
@@ -169,9 +178,10 @@ class MemeResource(Resource):
         if meme:
             db.session.delete(meme)
             db.session.commit()
+            logger.info("%s deleted meme %s" % (flask.g.netid, meme_id))
             return "Deleted meme %s. ;_;7" % meme_id
         else:
-            return send_error("No meme with id %s" % meme_id)
+            return unknown_meme_response(meme_id)
 
 
 class MemeApprovalResource(Resource):
@@ -179,10 +189,11 @@ class MemeApprovalResource(Resource):
     def put(self, meme_id):
         meme = Meme.query.filter_by(id=meme_id).first()
         if not meme:
-            return send_error("No meme with id %s" % meme_id)
+            return unknown_meme_response(meme_id)
         meme.approved = True
         db.session.add(meme)
         db.session.commit()
+        logger.info("%s approved meme %s" % (flask.g.netid, meme_id))
         return send_success("Approved meme %s" % meme_id)
 
 
@@ -196,6 +207,8 @@ class MemeUnapprovedResource(Resource):
         page = Meme.query.filter_by(approved=0).paginate(
             page=args.page, per_page=24)
 
+        logger.info("Serving %s unapproved memes page %s" %
+                    (flask.g.netid, args.page))
         return jsonify({
             'memes': [m.to_dict() for m in page.items],
             'page': args.page,
@@ -218,8 +231,11 @@ class MemeVotingResource(Resource):
         if vote:
             db.session.delete(vote)
             db.session.commit()
+            logger.info("Deleted vote for %s by %s" % (flask.g.netid, meme_id))
             return send_success("Deleted vote for %s" % meme_id)
         else:
+            logger.info("%s tried to delete non-existant vote for  %s" %
+                        (flask.g.netid, meme_id))
             return send_error("You haven't voted for meme %s" % meme_id)
 
     def put(self, meme_id):
@@ -230,7 +246,7 @@ class MemeVotingResource(Resource):
         netid = parser.parse_args().netid
 
         if not Meme.query.filter_by(id=meme_id).first():
-            return send_error("No meme with id %s" % meme_id)
+            return unknown_meme_response(meme_id)
 
         vote = Vote.query.filter_by(
             netid=netid, meme_id=meme_id).first()
@@ -238,6 +254,7 @@ class MemeVotingResource(Resource):
             vote = Vote(netid=netid, meme_id=meme_id)
         db.session.add(vote)
         db.session.commit()
+        logger.info("Logged vote for %s by %s" % (flask.g.netid, meme_id))
         return send_success("Cast vote for %s" % meme_id)
 
 
@@ -251,4 +268,5 @@ db.create_all(app=app)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level="INFO")
     app.run(port=PORT, debug=DEBUG)
