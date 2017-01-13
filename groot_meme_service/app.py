@@ -14,8 +14,9 @@ import requests
 from models import db, Meme, Vote
 from settings import MYSQL, GROOT_ACCESS_TOKEN
 from flask_restful import Resource, Api, reqparse, inputs
-from sqlalchemy.sql.expression import func
+from sqlalchemy.sql.expression import func, text
 from utils import send_error, send_success, unknown_meme_response
+from datetime import datetime
 import logging
 logger = logging.getLogger('groot_meme_service')
 
@@ -92,19 +93,28 @@ def authenticate_token():
 class MemeListResource(Resource):
     def get(self):
         ''' Endpoint for viewing dank memes '''
-        order_funcs = {
-            'random': func.random(),
-            'latest': Meme.created_at
+        order_queries = {
+            'random': Meme.query.order_by(func.random()),
+            'latest': Meme.query.order_by(Meme.created_at.desc()),
+            'hottest': Meme.query.outerjoin(Vote).group_by(Meme.id).order_by(
+                (func.timestampdiff(
+                    text('second'),
+                    datetime.now(),
+                    Meme.created_at) /
+                 func.count(Vote.id)).desc()
+                ),
+            'top': Meme.query.outerjoin(Vote).group_by(Meme.id).order_by(
+                func.count(Vote.id).desc(), Meme.created_at.desc())
         }
         parser = reqparse.RequestParser()
-        parser.add_argument('order', choices=order_funcs.keys(),
+        parser.add_argument('order', choices=order_queries.keys(),
                             default='latest', location='args')
         parser.add_argument('author', location='args')
         parser.add_argument('page', location='args', default=1,
                             type=int)
         args = parser.parse_args()
 
-        memes = Meme.query.order_by(order_funcs[args.order])
+        memes = order_queries[args.order]
 
         if args.author:
             memes = memes.filter_by(netid=args.author)
