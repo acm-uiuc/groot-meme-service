@@ -113,7 +113,9 @@ class MemeListResource(Resource):
         return jsonify({
             'memes': memes_dict,
             'page': args.page,
-            'num_pages': page.pages
+            'num_pages': page.pages,
+            'next_page': page.next_num if page.has_next else None,
+            'prev_page': page.prev_num if page.has_prev else None
         })
 
     def post(self):
@@ -187,7 +189,7 @@ class MemeUnapprovedResource(Resource):
     @requires_admin
     def get(self):
         memes = db.session.query(Meme).filter_by(approved=0).all()
-        return jsonify([m.to_dict() for m in memes])
+        return jsonify(dict(memes=[m.to_dict() for m in memes]))
 
 
 class MemeVotingResource(Resource):

@@ -36,5 +36,5 @@ class Meme(db.Model):
 class Vote(db.Model):
     __tablename__ = "votes"
     id = db.Column(db.Integer, primary_key=True)
-    netid = db.Column(db.String(100))
+    netid = db.Column(db.String(100), index=True)
     meme_id = db.Column(db.Integer, db.ForeignKey('memes.id'))
