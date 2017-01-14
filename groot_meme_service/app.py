@@ -13,7 +13,7 @@ import os
 import requests
 from models import db, Meme, Vote
 from settings import MYSQL, GROOT_ACCESS_TOKEN
-from flask_restful import Resource, Api, reqparse, inputs
+from flask_restful import Resource, Api, reqparse
 from sqlalchemy.sql.expression import func, text
 from utils import (send_error, send_success, unknown_meme_response,
                    validate_imgur_link)
@@ -85,7 +85,7 @@ def requires_admin(func):
 @app.before_request
 def authenticate_token():
     parser = reqparse.RequestParser()
-    parser.add_argument('token', location='args', required=True,
+    parser.add_argument('Meme-Token', location='headers', required=True,
                         dest='netid', type=authenticate_netid)
     args = parser.parse_args()
     flask.g.netid = args.netid
