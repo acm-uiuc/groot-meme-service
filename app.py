@@ -12,7 +12,7 @@ import flask
 import os
 import requests
 from models import db, Meme, Vote
-from settings import MYSQL, GROOT_ACCESS_TOKEN
+from settings import MYSQL, GROOT_ACCESS_TOKEN, APP_TOKEN
 from flask_restful import Resource, Api, reqparse
 from sqlalchemy.sql.expression import func, text
 from utils import (send_error, send_success, unknown_meme_response,
@@ -86,16 +86,27 @@ def requires_admin(func):
     return decorated
 
 
-@app.before_request
-def authenticate_token():
-    parser = reqparse.RequestParser()
-    parser.add_argument('Meme-Token', location='headers', required=True,
-                        dest='netid', type=authenticate_netid)
-    args = parser.parse_args()
-    flask.g.netid = args.netid
+def require_token_auth(allow_unversal_token=False):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            parser = reqparse.RequestParser()
+            parser.add_argument('Meme-Token', location='headers',
+                                required=True, dest='token')
+            args = parser.parse_args()
+            if allow_unversal_token and args.token == APP_TOKEN:
+                flask.g.netid = "APP_USER"
+                return func(*args, **kwargs)
+            try:
+                flask.g.netid = authenticate_netid(args.token)
+                return func(*args, **kwargs)
+            except ValueError as e:
+                return send_error(str(e), 403)
+        return wrapper
+    return decorator
 
 
 class MemeListResource(Resource):
+    @require_token_auth(allow_unversal_token=True)
     def get(self):
         ''' Endpoint for viewing dank memes '''
         order_queries = {
@@ -154,6 +165,7 @@ class MemeListResource(Resource):
             'prev_page': page.prev_num if page.has_prev else None
         })
 
+    @require_token_auth()
     def post(self):
         ''' Endpoint for registering a meme '''
         parser = reqparse.RequestParser()
@@ -183,6 +195,7 @@ class MemeListResource(Resource):
 
 
 class MemeResource(Resource):
+    @require_token_auth(allow_unversal_token=True)
     def get(self, meme_id):
         ''' Endpoint for accessing a single meme '''
         meme = Meme.query.filter_by(id=meme_id).first()
@@ -197,6 +210,7 @@ class MemeResource(Resource):
         else:
             return unknown_meme_response(meme_id)
 
+    @require_token_auth()
     @requires_admin
     def delete(self, meme_id):
         ''' Endpoint for deleting a meme :'( '''
@@ -211,6 +225,7 @@ class MemeResource(Resource):
 
 
 class MemeApprovalResource(Resource):
+    @require_token_auth()
     @requires_admin
     def put(self, meme_id):
         meme = Meme.query.filter_by(id=meme_id).first()
@@ -224,6 +239,7 @@ class MemeApprovalResource(Resource):
 
 
 class MemeVotingResource(Resource):
+    @require_token_auth()
     def delete(self, meme_id):
         ''' Remove your vote for the requested meme '''
         netid = flask.g.netid
@@ -240,6 +256,7 @@ class MemeVotingResource(Resource):
                         (flask.g.netid, meme_id))
             return send_error("You haven't voted for meme %s" % meme_id)
 
+    @require_token_auth()
     def put(self, meme_id):
         ''' Cast your vote for the requested meme '''
         netid = flask.g.netid

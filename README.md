@@ -34,6 +34,10 @@ Do `export MEME_DEBUG=True` to run Flask in debug mode, if desired.
 
 For the purposes of `groot-meme-service` 'admin access' is granted to members of the ACM admin, corporate, and top4 committees, as given by `groot-group-service`.
 
+## App Token
+
+For the `GET /memes` and `GET /memes/:meme_id` endpoints, you can provide the `APP_TOKEN` as defined in `settings.py` in leiu of a student session token. This is so that client apps (notably [display](https://github.com/acm-uiuc/display)) can connect while still having a reasonable amount of internal security.
+
 ## Meme Routes
 
 **NOTE:** All routes require a HTTP Header called `Meme-Token` which must be set to a valid user session token.
