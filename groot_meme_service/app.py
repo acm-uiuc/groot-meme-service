@@ -226,10 +226,7 @@ class MemeApprovalResource(Resource):
 class MemeVotingResource(Resource):
     def delete(self, meme_id):
         ''' Remove your vote for the requested meme '''
-        parser = reqparse.RequestParser()
-        parser.add_argument('token', location='args', required=True,
-                            dest='netid', type=authenticate_netid)
-        netid = parser.parse_args().netid
+        netid = flask.g.netid
 
         vote = Vote.query.filter_by(
             netid=netid, meme_id=meme_id).first()
@@ -245,10 +242,7 @@ class MemeVotingResource(Resource):
 
     def put(self, meme_id):
         ''' Cast your vote for the requested meme '''
-        parser = reqparse.RequestParser()
-        parser.add_argument('token', location='args', required=True,
-                            dest='netid', type=authenticate_netid)
-        netid = parser.parse_args().netid
+        netid = flask.g.netid
 
         if not Meme.query.filter_by(id=meme_id).first():
             return unknown_meme_response(meme_id)
