@@ -15,7 +15,8 @@ from models import db, Meme, Vote
 from settings import MYSQL, GROOT_ACCESS_TOKEN
 from flask_restful import Resource, Api, reqparse, inputs
 from sqlalchemy.sql.expression import func, text
-from utils import send_error, send_success, unknown_meme_response
+from utils import (send_error, send_success, unknown_meme_response,
+                   validate_imgur_link)
 from datetime import datetime
 import logging
 logger = logging.getLogger('groot_meme_service')
@@ -145,14 +146,18 @@ class MemeListResource(Resource):
     def post(self):
         ''' Endpoint for registering a meme '''
         parser = reqparse.RequestParser()
-        parser.add_argument('url', required=True,
-                            type=inputs.regex('https?:\/\/.*\.(?:png|jpg)'))
+        parser.add_argument('url', required=True)
         parser.add_argument('title')
         args = parser.parse_args()
 
         if Meme.query.filter_by(url=args.url).first():
             return send_error("This meme has already been submitted! "
                               "Lay off the stale memes.", 400)
+        try:
+            args.url = validate_imgur_link(args.url)
+        except ValueError as e:
+            logger.info('%s sent an invalid imgur link.' % flask.g.netid)
+            return send_error(str(e))
 
         meme = Meme(
             url=args.url,
