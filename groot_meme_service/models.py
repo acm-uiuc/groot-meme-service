@@ -23,7 +23,7 @@ class Meme(db.Model):
     votes = db.relationship('Vote', backref='meme', lazy='dynamic')
 
     def to_dict(self):
-        return {
+        meme_dict = {
             'id': self.id,
             'url': self.url,
             'created_at': self.created_at.isoformat(),
@@ -31,6 +31,9 @@ class Meme(db.Model):
             'author': self.netid,
             'votes': self.votes.count()
         }
+        if not self.approved:
+            meme_dict['unapproved'] = True
+        return meme_dict
 
 
 class Vote(db.Model):

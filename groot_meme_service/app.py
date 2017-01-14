@@ -71,12 +71,16 @@ def approve_meme_admin(netid):
     return any(check_group_membership(netid, g) for g in meme_groups)
 
 
+def reject_failed_admin():
+    logger.info("Rejecting admin request from %s" % flask.g.netid)
+    return send_error("Nice try memelord, "
+                      "but I can't let you do that.", 403)
+
+
 def requires_admin(func):
     def decorated(*args, **kwargs):
         if not approve_meme_admin(flask.g.netid):
-            logger.info("Rejecting admin request from %s" % flask.g.netid)
-            return send_error("Nice try memelord, "
-                              "but I can't let you do that.", 403)
+            return reject_failed_admin()
         logger.info("Authenticated admin request from %s" % flask.g.netid)
         return func(*args, **kwargs)
     return decorated
@@ -105,7 +109,9 @@ class MemeListResource(Resource):
                  func.count(Vote.id)).desc()
                 ),
             'top': Meme.query.outerjoin(Vote).group_by(Meme.id).order_by(
-                func.count(Vote.id).desc(), Meme.created_at.desc())
+                func.count(Vote.id).desc(), Meme.created_at.desc()),
+            'unapproved': Meme.query.filter_by(approved=False).order_by(
+                Meme.created_at)
         }
         parser = reqparse.RequestParser()
         parser.add_argument('order', choices=order_queries.keys(),
@@ -117,11 +123,16 @@ class MemeListResource(Resource):
 
         memes = order_queries[args.order]
 
+        if args.order == 'unapproved':
+            if not approve_meme_admin(flask.g.netid):
+                return reject_failed_admin()
+        else:
+            memes = memes.filter(Meme.approved is True)
+
         if args.author:
             memes = memes.filter_by(netid=args.author)
 
-        page = memes.filter(Meme.approved != 0).paginate(
-            page=args.page, per_page=24)
+        page = memes.paginate(page=args.page, per_page=24)
 
         memes_dict = [m.to_dict() for m in page.items]
 
@@ -212,27 +223,6 @@ class MemeApprovalResource(Resource):
         return send_success("Approved meme %s" % meme_id)
 
 
-class MemeUnapprovedResource(Resource):
-    @requires_admin
-    def get(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('page', location='args', default=1,
-                            type=int)
-        args = parser.parse_args()
-        page = Meme.query.filter_by(approved=0).paginate(
-            page=args.page, per_page=24)
-
-        logger.info("Serving %s unapproved memes page %s" %
-                    (flask.g.netid, args.page))
-        return jsonify({
-            'memes': [m.to_dict() for m in page.items],
-            'page': args.page,
-            'num_pages': page.pages,
-            'next_page': page.next_num if page.has_next else None,
-            'prev_page': page.prev_num if page.has_prev else None
-        })
-
-
 class MemeVotingResource(Resource):
     def delete(self, meme_id):
         ''' Remove your vote for the requested meme '''
@@ -276,7 +266,6 @@ class MemeVotingResource(Resource):
 api.add_resource(MemeResource, '/memes/<int:meme_id>', endpoint='meme')
 api.add_resource(MemeListResource, '/memes', endpoint='memes')
 api.add_resource(MemeApprovalResource, '/memes/<int:meme_id>/approve')
-api.add_resource(MemeUnapprovedResource, '/memes/unapproved')
 api.add_resource(MemeVotingResource, '/memes/vote/<int:meme_id>')
 db.init_app(app)
 db.create_all(app=app)
