@@ -127,7 +127,7 @@ class MemeListResource(Resource):
             if not approve_meme_admin(flask.g.netid):
                 return reject_failed_admin()
         else:
-            memes = memes.filter(Meme.approved is True)
+            memes = memes.filter(Meme.approved)
 
         if args.author:
             memes = memes.filter_by(netid=args.author)
@@ -266,7 +266,7 @@ class MemeVotingResource(Resource):
 api.add_resource(MemeResource, '/memes/<int:meme_id>', endpoint='meme')
 api.add_resource(MemeListResource, '/memes', endpoint='memes')
 api.add_resource(MemeApprovalResource, '/memes/<int:meme_id>/approve')
-api.add_resource(MemeVotingResource, '/memes/vote/<int:meme_id>')
+api.add_resource(MemeVotingResource, '/memes/<int:meme_id>/vote')
 db.init_app(app)
 db.create_all(app=app)
 

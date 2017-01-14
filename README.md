@@ -30,56 +30,61 @@ python groot_meme_service/app.py
 
 Do `export MEME_DEBUG=True` to run Flask in debug mode, if desired.
 
+## Authorization
+
+For the purposes of `groot-meme-service` 'admin access' is granted to members of the ACM admin, corporate, and top4 committees, as given by `groot-group-service`.
+
 ## Meme Routes
 
-### GET /memes
+**NOTE:** All routes require a HTTP Header called `Meme-Token` which must be set to a valid user session token.
 
-Returns first 25 memes in given order.
+### Meme Actions
 
-**Params**:
+#### GET /memes
+
+Returns paginated memes in given order.
+
+*Params*:
 
 - `author` - Optional. Filter by user who submitted meme.
-- `order` - Optional. Options: 'random' - random order, 'latest' - freshest memes
-    - Default: 'random'
-- `token` - Optional. Session token of user. Will add 'upvoted' key to response, indicating if the user has up voted each meme
+- `order` - Optional.
+    - Options: 
+        - 'latest' - freshest memes first
+        - 'random' - random order
+        - 'top' - memes sorted by number of votes descending
+        - 'hottest' - memes sorted by number of votes ranked by recency
+        - 'unapproved' - Requires admin access. Returns unapproved memes in ascending order by upload time.
+    - Default: 'latest'
 
+#### POST /memes
 
-### POST /memes
+Registers a new meme.
 
-**Params**:
+*Params*:
 
-- `url` - Required. Direct image url of the meme. Must have `png` or `jpg` extension.
-- `token` - Required. Session token to authenticate poster.
+- `url` - Required. Imgur url of the meme image. Must reference a valid [imgur](http://imgur.com) image (not a imgur gallery or album). Duplicate images are not allowed.
 - `title` - Optional. Title of your meme.
 
-### GET /memes/:meme_id
+#### GET /memes/:meme_id
 
-Returns given meme.
+Returns the requested meme.
 
-**Params**:
+### Admin Actions
 
-- `token` - Optional. Session token of user. Will add 'upvoted' key to response, indicating if the user has up voted the meme
-
-### DELETE /memes/:meme_id
+#### DELETE /memes/:meme_id
 
 Requires admin access. Deletes a meme.
 
-**Params**:
-- `token` - Required. Session token to authenticate user.
-
-
-### GET /memes/unapproved
-
-Requires admin access. Returns all unapproved memes.
-
-**Params**:
-- `token` - Required. Session token to authenticate user.
-
-### PUT /memes/:meme_id/approve
+#### PUT /memes/:meme_id/approve
 
 Requires admin access. Approves a meme to be publicly viewable.
 
-**Params**:
-- `token` - Required. Session token to authenticate user.
+### Voting
 
+#### PUT /memes/:meme_id/vote
 
+Register a vote for the given meme.
+
+#### DELETE /memes/:meme_id/vote
+
+Retract a vote for the given meme.
