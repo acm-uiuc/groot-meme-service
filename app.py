@@ -50,6 +50,7 @@ def authenticate_netid(token):
         raise ValueError("Who do you think you are? "
                          "Unable to authenticate token.")
     netid = r.json().get('user')['name']
+    flask.g.netid = netid
     logger.info("Authenticated user %s" % netid)
     return netid
 
