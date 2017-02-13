@@ -7,6 +7,7 @@ Illinois/NCSA Open Source License.  You should have received a copy of
 this license in a file with the distribution.
 '''
 
+# MySQL Database Credentials
 MYSQL = {
     'user': '',
     'password': '',
@@ -14,4 +15,8 @@ MYSQL = {
     'dbname': ''
 }
 
+# Base Groot Services URL
+GROOT_SERVICES_URL = 'http://localhost:8000'
+
+# Groot Service Access Token
 GROOT_ACCESS_TOKEN = ''

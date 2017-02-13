@@ -12,7 +12,7 @@ import flask
 import os
 import requests
 from models import db, Meme, Vote
-from settings import MYSQL, GROOT_ACCESS_TOKEN
+from settings import MYSQL, GROOT_ACCESS_TOKEN, GROOT_SERVICES_URL
 from flask_restful import Resource, Api, reqparse
 from sqlalchemy.sql.expression import func, text
 from utils import (send_error, send_success, unknown_meme_response,
@@ -33,13 +33,12 @@ app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=UTF-8'
 
 PORT = 42069
 DEBUG = os.environ.get('MEME_DEBUG', False)
-SERVICES_URL = 'http://localhost:8000'
 
 api = Api(app)
 
 
 def authenticate_netid(token):
-    url = '/'.join([SERVICES_URL, 'session', token])
+    url = '/'.join([GROOT_SERVICES_URL, 'session', token])
     headers = {
         'Authorization': GROOT_ACCESS_TOKEN,
         'Accept': 'application/json'
@@ -56,7 +55,7 @@ def authenticate_netid(token):
 
 
 def check_group_membership(netid, group):
-    url = '/'.join([SERVICES_URL, 'groups', 'committees', group])
+    url = '/'.join([GROOT_SERVICES_URL, 'groups', 'committees', group])
     headers = {
         'Authorization': GROOT_ACCESS_TOKEN
     }
