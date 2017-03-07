@@ -11,8 +11,8 @@ this license in a file with the distribution.
 MYSQL = {
     'user': '',
     'password': '',
-    'host': '',
-    'dbname': ''
+    'host': 'localhost',
+    'dbname': 'groot_meme_service'
 }
 
 # Base Groot Services URL
