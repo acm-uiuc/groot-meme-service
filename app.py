@@ -7,11 +7,10 @@ Illinois/NCSA Open Source License.  You should have received a copy of
 this license in a file with the distribution.
 '''
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 import flask
 import os
 import requests
-from flask_uploads import UploadSet, configure_uploads, patch_request_class
 from models import db, Meme, Vote
 from settings import MYSQL, GROOT_ACCESS_TOKEN, GROOT_SERVICES_URL
 from flask_restful import Resource, Api, reqparse
@@ -34,10 +33,6 @@ app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=UTF-8'
 
 PORT = 42069
 DEBUG = os.environ.get('MEME_DEBUG', False)
-
-imgur_images = UploadSet('imgur_images', ('jpg', 'png', 'gif'))
-configure_uploads(app, (imgur_images))
-patch_request_class(app, 20 * 1024 * 1024)  # Max upload size: 20Mb
 
 api = Api(app)
 
@@ -166,15 +161,11 @@ class MemeListResource(Resource):
     def post(self):
         ''' Endpoint for registering a meme '''
         parser = reqparse.RequestParser()
-        parser.add_argument('url')
+        parser.add_argument('url', required=True)
         parser.add_argument('title')
         args = parser.parse_args()
 
-        if 'photo' in request.files:
-            fname = imgur_images.save(request.files['photo'])
-            # Todo: Upload to imgur
-
-        if args.url and Meme.query.filter_by(url=args.url).first():
+        if Meme.query.filter_by(url=args.url).first():
             return send_error("This meme has already been submitted! "
                               "Lay off the stale memes.", 400)
         try:
