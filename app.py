@@ -77,7 +77,7 @@ class MemeListResource(Resource):
         memes_dict = [m.to_dict() for m in page.items]
 
         # Check to see if token user has voted on each meme
-        if args.netidsl:
+        if args.netid:
             for meme in memes_dict:
                 meme['upvoted'] = Vote.query.filter_by(
                     netid=args.netid,
@@ -85,7 +85,7 @@ class MemeListResource(Resource):
                     ).first() is not None
 
         logger.info("Serving memes to %s from page %s" %
-                    (args.user, args.page))
+                    (args.netid, args.page))
 
         return jsonify({
             'memes': memes_dict,
