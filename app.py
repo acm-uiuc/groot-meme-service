@@ -12,12 +12,14 @@ import flask
 import os
 import requests
 from models import db, Meme, Vote
-from settings import MYSQL, GROOT_ACCESS_TOKEN, GROOT_SERVICES_URL
+from settings import (MYSQL, GROOT_ACCESS_TOKEN, GROOT_SERVICES_URL,
+                      IMGUR_CLIENT_ID, IMGUR_CLIENT_SECRET)
 from flask_restful import Resource, Api, reqparse
 from sqlalchemy.sql.expression import func, text
 from utils import (send_error, send_success, unknown_meme_response,
                    validate_imgur_link)
 from datetime import datetime
+from imgurpython import ImgurClient
 import logging
 logger = logging.getLogger('groot_meme_service')
 
@@ -33,6 +35,11 @@ app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=UTF-8'
 
 PORT = 42069
 DEBUG = os.environ.get('MEME_DEBUG', False)
+
+imgur_images = UploadSet('ImageUploads',
+                         ('jpg', 'png', 'gif'),
+                         default_dest=lambda app: app.root_path)
+imgur_client = ImgurClient(IMGUR_CLIENT_ID, IMGUR_CLIENT_SECRET)
 
 api = Api(app)
 
@@ -102,18 +109,35 @@ class MemeListResource(Resource):
         parser.add_argument('title')
         parser.add_argument('netid', required=True)
         args = parser.parse_args()
+        image_url = None
 
         if Meme.query.filter_by(url=args.url).first():
+            # Save file sent in request
+
+            # Upload to imgur
+            try:
+                uploaded = imgur_client.upload_from_path(fname)
+                image_url = uploaded.get('link')
+            except:
+                send_error("Failed to upload file.", 500)
+
+            # Delete local file
+            os.remove(fname)
             return send_error("This meme has already been submitted! "
                               "Lay off the stale memes.", 400)
+        elif args.url:
+            image_url = args.url
+
+        if not image_url:
+            return send_error("Must submit a URL or upload image", 400)
         try:
-            args.url = validate_imgur_link(args.url)
+            image_url = validate_imgur_link(image_url)
         except ValueError as e:
             logger.info('%s sent an invalid imgur link.' % args.netid)
             return send_error(str(e))
 
         meme = Meme(
-            url=args.url,
+            url=image_url,
             title=args.title,
             netid=args.netid
         )

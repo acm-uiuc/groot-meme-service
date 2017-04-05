@@ -20,3 +20,7 @@ GROOT_SERVICES_URL = 'http://localhost:8000'
 
 # Groot Service Access Token
 GROOT_ACCESS_TOKEN = ''
+
+# Imgur Credentials
+IMGUR_CLIENT_ID = ''
+IMGUR_CLIENT_SECRET = ''
