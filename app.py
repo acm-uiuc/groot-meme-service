@@ -7,19 +7,17 @@ Illinois/NCSA Open Source License.  You should have received a copy of
 this license in a file with the distribution.
 '''
 
-from flask import Flask, jsonify
-import flask
+from flask import Flask, jsonify, request
 import os
-import requests
 from models import db, Meme, Vote
-from settings import (MYSQL, GROOT_ACCESS_TOKEN, GROOT_SERVICES_URL,
-                      IMGUR_CLIENT_ID, IMGUR_CLIENT_SECRET)
+from settings import MYSQL, IMGUR_CLIENT_ID, IMGUR_CLIENT_SECRET
+from flask_uploads import UploadSet, configure_uploads
+from imgurpython import ImgurClient
 from flask_restful import Resource, Api, reqparse
 from sqlalchemy.sql.expression import func, text
 from utils import (send_error, send_success, unknown_meme_response,
                    validate_imgur_link)
 from datetime import datetime
-from imgurpython import ImgurClient
 import logging
 logger = logging.getLogger('groot_meme_service')
 
@@ -39,6 +37,7 @@ DEBUG = os.environ.get('MEME_DEBUG', False)
 imgur_images = UploadSet('ImageUploads',
                          ('jpg', 'png', 'gif'),
                          default_dest=lambda app: app.root_path)
+configure_uploads(app, (imgur_images))
 imgur_client = ImgurClient(IMGUR_CLIENT_ID, IMGUR_CLIENT_SECRET)
 
 api = Api(app)
@@ -111,8 +110,9 @@ class MemeListResource(Resource):
         args = parser.parse_args()
         image_url = None
 
-        if Meme.query.filter_by(url=args.url).first():
+        if 'photo' in request.files:
             # Save file sent in request
+            fname = imgur_images.save(request.files['photo'])
 
             # Upload to imgur
             try:
@@ -123,6 +123,7 @@ class MemeListResource(Resource):
 
             # Delete local file
             os.remove(fname)
+        if Meme.query.filter_by(url=args.url).first():
             return send_error("This meme has already been submitted! "
                               "Lay off the stale memes.", 400)
         elif args.url:
