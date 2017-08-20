@@ -2,4 +2,4 @@ language: python
 python:
   - "2.7"
 script:
-  - "pip install pep8 && pep8 *.py"
+  - "pip install flake8 && flake8 *.py"
