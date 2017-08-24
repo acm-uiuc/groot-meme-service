@@ -8,11 +8,9 @@ this license in a file with the distribution.
 '''
 
 from flask import Flask, jsonify
-import flask
 import os
-import requests
 from models import db, Meme, Vote
-from settings import MYSQL, GROOT_ACCESS_TOKEN, GROOT_SERVICES_URL
+from settings import MYSQL
 from flask_restful import Resource, Api, reqparse
 from sqlalchemy.sql.expression import func, text
 from utils import (send_error, send_success, unknown_meme_response,
