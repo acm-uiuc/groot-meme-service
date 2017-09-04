@@ -7,10 +7,12 @@ Illinois/NCSA Open Source License.  You should have received a copy of
 this license in a file with the distribution.
 '''
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import os
 from models import db, Meme, Vote
-from settings import MYSQL
+from settings import MYSQL, IMGUR_CLIENT_ID, IMGUR_CLIENT_SECRET
+from flask_uploads import UploadSet, configure_uploads
+from imgurpython import ImgurClient
 from flask_restful import Resource, Api, reqparse
 from sqlalchemy.sql.expression import func, text
 from utils import (send_error, send_success, unknown_meme_response,
@@ -31,6 +33,12 @@ app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=UTF-8'
 
 PORT = 42069
 DEBUG = os.environ.get('MEME_DEBUG', False)
+
+imgur_images = UploadSet('ImageUploads',
+                         ('jpg', 'png', 'gif'),
+                         default_dest=lambda app: app.root_path)
+configure_uploads(app, (imgur_images))
+imgur_client = ImgurClient(IMGUR_CLIENT_ID, IMGUR_CLIENT_SECRET)
 
 api = Api(app)
 
@@ -100,18 +108,37 @@ class MemeListResource(Resource):
         parser.add_argument('title')
         parser.add_argument('netid', required=True)
         args = parser.parse_args()
+        image_url = None
 
+        if 'photo' in request.files:
+            # Save file sent in request
+            fname = imgur_images.save(request.files['photo'])
+
+            # Upload to imgur
+            try:
+                uploaded = imgur_client.upload_from_path(fname)
+                image_url = uploaded.get('link')
+            except:
+                send_error("Failed to upload file.", 500)
+
+            # Delete local file
+            os.remove(fname)
         if Meme.query.filter_by(url=args.url).first():
             return send_error("This meme has already been submitted! "
                               "Lay off the stale memes.", 400)
+        elif args.url:
+            image_url = args.url
+
+        if not image_url:
+            return send_error("Must submit a URL or upload image", 400)
         try:
-            args.url = validate_imgur_link(args.url)
+            image_url = validate_imgur_link(image_url)
         except ValueError as e:
             logger.info('%s sent an invalid imgur link.' % args.netid)
             return send_error(str(e))
 
         meme = Meme(
-            url=args.url,
+            url=image_url,
             title=args.title,
             netid=args.netid
         )
