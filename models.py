@@ -7,16 +7,16 @@ Illinois/NCSA Open Source License.  You should have received a copy of
 this license in a file with the distribution.
 '''
 
+import enum
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
-
 
 class Meme(db.Model):
     __tablename__ = "memes"
     id = db.Column(db.Integer, primary_key=True)
     url = db.Column(db.String(120), unique=True)
-    netid = db.Column(db.String(100))
+    netid = db.Column(db.String(8))
     title = db.Column(db.String(100))
     approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
@@ -39,5 +39,13 @@ class Meme(db.Model):
 class Vote(db.Model):
     __tablename__ = "votes"
     id = db.Column(db.Integer, primary_key=True)
-    netid = db.Column(db.String(100), index=True)
+    netid = db.Column(db.String(8), index=True)
     meme_id = db.Column(db.Integer, db.ForeignKey('memes.id'))
+    react_type = db.Column(db.Enum(React))
+
+class React(enum.Enum):
+    LIKE = 1
+    LAUGH = 2
+    SAD = 3
+    ANGRY = 4
+    WOW = 5
