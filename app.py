@@ -16,7 +16,7 @@ from imgurpython import ImgurClient
 from flask_restful import Resource, Api, reqparse
 from sqlalchemy.sql.expression import func, text
 from utils import (send_error, send_success, unknown_meme_response,
-                   validate_imgur_link)
+                   unknown_react_response, validate_imgur_link)
 from datetime import datetime
 import logging
 logger = logging.getLogger('groot_meme_service')
@@ -190,8 +190,8 @@ class MemeApprovalResource(Resource):
         return send_success("Approved meme %s" % meme_id)
 
 
-class MemeVotingResource(Resource):
-    def delete(self, meme_id, vote_type):
+class MemeUnvotingResource(Resource):
+    def delete(self, meme_id):
         ''' Remove your vote for the requested meme '''
         parser = reqparse.RequestParser()
         parser.add_argument('netid', required=True)
@@ -209,6 +209,8 @@ class MemeVotingResource(Resource):
                         (args.netid, meme_id))
             return send_error("You haven't voted for meme %s" % meme_id)
 
+
+class MemeVotingResource(Resource):
     def put(self, meme_id, vote_type):
         ''' Cast your vote for the requested meme '''
         parser = reqparse.RequestParser()
@@ -218,19 +220,21 @@ class MemeVotingResource(Resource):
         if not Meme.query.filter_by(id=meme_id).first():
             return unknown_meme_response(meme_id)
 
-        if not vote_type>=0 and vote_type<len(list(React)):
+        if not vote_type >= 0 and vote_type < len(list(React)):
             return unknown_react_response(vote_type)
 
         vote = Vote.query.filter_by(
             netid=args.netid, meme_id=meme_id).first()
         if not vote:
-            vote = Vote(netid=netid, meme_id=meme_id, vote_type=React(vote_type))
+            vote = Vote(
+                netid=args.netid, meme_id=meme_id, vote_type=React(vote_type))
         else:
-            vote.vote_type=React(vote_type)
+            vote.vote_type = React(vote_type)
 
         db.session.add(vote)
         db.session.commit()
-        logger.info("Logged vote for %s by %s of type %s" % (flask.g.netid, meme_id, React(vote_type)))
+        logger.info("Logged vote for %s by %s of type %s" %
+                    (args.netid, meme_id, React(vote_type)))
         return send_success("Cast vote for %s" % meme_id)
 
 
@@ -244,7 +248,9 @@ class MemeRandomResource(Resource):
 api.add_resource(MemeResource, '/memes/<int:meme_id>', endpoint='meme')
 api.add_resource(MemeListResource, '/memes', endpoint='memes')
 api.add_resource(MemeApprovalResource, '/memes/<int:meme_id>/approve')
-api.add_resource(MemeVotingResource, '/memes/<int:meme_id>/<int:vote_type>/vote')
+api.add_resource(MemeUnvotingResource, '/memes/<int:meme_id>/vote')
+api.add_resource(MemeVotingResource,
+                 '/memes/<int:meme_id>/<int:vote_type>/vote')
 api.add_resource(MemeRandomResource, '/memes/random')
 db.init_app(app)
 db.create_all(app=app)
