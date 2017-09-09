@@ -88,15 +88,21 @@ Requires admin access. Approves a meme to be publicly viewable.
 
 ### Voting
 
-#### PUT /memes/:meme_id/:vote_type/vote
+#### PUT /memes/:meme_id/vote
 
 Register a vote for the given meme.
 Vote type can be any of the following:
- - LIKE = 1
- - LAUGH = 2
- - SAD = 3
- - ANGRY = 4
- - WOW = 5
+ - like
+ - laugh
+ - sad
+ - angry
+ - wow
+Request
+```
+{
+	"vote_type": "like"
+}
+```
 
 #### DELETE /memes/:meme_id/vote
 

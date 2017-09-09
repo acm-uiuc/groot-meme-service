@@ -190,7 +190,7 @@ class MemeApprovalResource(Resource):
         return send_success("Approved meme %s" % meme_id)
 
 
-class MemeUnvotingResource(Resource):
+class MemeVotingResource(Resource):
     def delete(self, meme_id):
         ''' Remove your vote for the requested meme '''
         parser = reqparse.RequestParser()
@@ -209,13 +209,16 @@ class MemeUnvotingResource(Resource):
                         (args.netid, meme_id))
             return send_error("You haven't voted for meme %s" % meme_id)
 
-
-class MemeVotingResource(Resource):
     def put(self, meme_id, vote_type):
         ''' Cast your vote for the requested meme '''
         parser = reqparse.RequestParser()
         parser.add_argument('netid', required=True)
         args = parser.parse_args()
+
+        if not request.json or 'vote_type' not in request.json:
+            vote_type = 'like'
+        else:
+            vote_type = request.json['vote_type']
 
         if not Meme.query.filter_by(id=meme_id).first():
             return unknown_meme_response(meme_id)
@@ -248,9 +251,7 @@ class MemeRandomResource(Resource):
 api.add_resource(MemeResource, '/memes/<int:meme_id>', endpoint='meme')
 api.add_resource(MemeListResource, '/memes', endpoint='memes')
 api.add_resource(MemeApprovalResource, '/memes/<int:meme_id>/approve')
-api.add_resource(MemeUnvotingResource, '/memes/<int:meme_id>/vote')
-api.add_resource(MemeVotingResource,
-                 '/memes/<int:meme_id>/<int:vote_type>/vote')
+api.add_resource(MemeVotingResource, '/memes/<int:meme_id>/vote')
 api.add_resource(MemeRandomResource, '/memes/random')
 db.init_app(app)
 db.create_all(app=app)
