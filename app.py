@@ -209,7 +209,7 @@ class MemeVotingResource(Resource):
                         (args.netid, meme_id))
             return send_error("You haven't voted for meme %s" % meme_id)
 
-    def put(self, meme_id, vote_type):
+    def put(self, meme_id):
         ''' Cast your vote for the requested meme '''
         parser = reqparse.RequestParser()
         parser.add_argument('netid', required=True)
@@ -223,16 +223,19 @@ class MemeVotingResource(Resource):
         if not Meme.query.filter_by(id=meme_id).first():
             return unknown_meme_response(meme_id)
 
-        if not vote_type >= 0 and vote_type < len(list(React)):
+        try:
+            vote_type_enum = React(vote_type)
+        except KeyError:
             return unknown_react_response(vote_type)
 
         vote = Vote.query.filter_by(
             netid=args.netid, meme_id=meme_id).first()
         if not vote:
             vote = Vote(
-                netid=args.netid, meme_id=meme_id, vote_type=React(vote_type))
+                netid=args.netid, meme_id=meme_id, vote_type=vote_type_enum
+            )
         else:
-            vote.vote_type = React(vote_type)
+            vote.vote_type = vote_type_enum
 
         db.session.add(vote)
         db.session.commit()
