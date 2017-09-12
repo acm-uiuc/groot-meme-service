@@ -224,7 +224,7 @@ class MemeVotingResource(Resource):
             return unknown_meme_response(meme_id)
 
         try:
-            vote_type_enum = React(vote_type)
+            vote_type_enum = React(vote_type.lower())
         except KeyError:
             return unknown_react_response(vote_type)
 

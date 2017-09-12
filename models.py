@@ -38,11 +38,11 @@ class Meme(db.Model):
 
 
 class React(enum.Enum):
-    like = 1
-    laugh = 2
-    sad = 3
-    angry = 4
-    wow = 5
+    like = 'like'
+    laugh = 'laugh'
+    sad = 'sad'
+    angry = 'angry'
+    wow = 'wow'
 
 
 class Vote(db.Model):
