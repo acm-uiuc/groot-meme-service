@@ -27,9 +27,15 @@ def send_success(message, code=200):
 
 
 def unknown_meme_response(meme_id):
-    logger.info("%s tried to access a nonexistant meme (%s)" %
+    logger.info("%s tried to access a nonexistent meme (%s)" %
                 (flask.g.netid, meme_id))
     return send_error("No meme with id %s" % meme_id)
+
+
+def unknown_react_response(react_id):
+    logger.info("%s tried to post a nonexistent react (%s)" %
+                (flask.g.netid, react_id))
+    return send_error("No react with id %s" % react_id)
 
 
 def validate_imgur_link(url):

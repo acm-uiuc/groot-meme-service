@@ -9,14 +9,14 @@ this license in a file with the distribution.
 
 from flask import Flask, jsonify, request
 import os
-from models import db, Meme, Vote
+from models import db, Meme, Vote, React
 from settings import MYSQL, IMGUR_CLIENT_ID, IMGUR_CLIENT_SECRET
 from flask_uploads import UploadSet, configure_uploads
 from imgurpython import ImgurClient
 from flask_restful import Resource, Api, reqparse
 from sqlalchemy.sql.expression import func, text
 from utils import (send_error, send_success, unknown_meme_response,
-                   validate_imgur_link)
+                   unknown_react_response, validate_imgur_link)
 from datetime import datetime
 import logging
 logger = logging.getLogger('groot_meme_service')
@@ -215,16 +215,32 @@ class MemeVotingResource(Resource):
         parser.add_argument('netid', required=True)
         args = parser.parse_args()
 
+        if not request.json or 'vote_type' not in request.json:
+            vote_type = 'like'
+        else:
+            vote_type = request.json['vote_type']
+
         if not Meme.query.filter_by(id=meme_id).first():
             return unknown_meme_response(meme_id)
+
+        try:
+            vote_type_enum = React(vote_type.lower())
+        except KeyError:
+            return unknown_react_response(vote_type)
 
         vote = Vote.query.filter_by(
             netid=args.netid, meme_id=meme_id).first()
         if not vote:
-            vote = Vote(netid=args.netid, meme_id=meme_id)
+            vote = Vote(
+                netid=args.netid, meme_id=meme_id, vote_type=vote_type_enum
+            )
+        else:
+            vote.vote_type = vote_type_enum
+
         db.session.add(vote)
         db.session.commit()
-        logger.info("Logged vote for %s by %s" % (args.netid, meme_id))
+        logger.info("Logged vote for %s by %s of type %s" %
+                    (args.netid, meme_id, React(vote_type)))
         return send_success("Cast vote for %s" % meme_id)
 
 
