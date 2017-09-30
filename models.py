@@ -50,4 +50,4 @@ class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     netid = db.Column(db.String(8), index=True)
     meme_id = db.Column(db.Integer, db.ForeignKey('memes.id'))
-    react_type = db.Column(db.Enum(React))
+    vote_type = db.Column(db.Enum(React))
